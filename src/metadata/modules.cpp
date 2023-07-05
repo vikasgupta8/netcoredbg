@@ -499,6 +499,7 @@ static HRESULT LoadSymbols(IMetaDataImport *pMD, ICorDebugModule *pModule, VOID 
 HRESULT Modules::TryLoadModuleSymbols(ICorDebugModule *pModule, Module &module, bool needJMC, bool needHotReload, std::string &outputText)
 {
     HRESULT Status;
+    printf("\nVIKAS_LOG_MONO :: Modules::TryLoadModuleSymbols START");
 
     ToRelease<IUnknown> pMDUnknown;
     ToRelease<IMetaDataImport> pMDImport;
@@ -507,6 +508,7 @@ HRESULT Modules::TryLoadModuleSymbols(ICorDebugModule *pModule, Module &module, 
 
     module.path = GetModuleFileName(pModule);
     module.name = GetFileName(module.path);
+    printf("\nVIKAS_LOG_MONO :: Modules::TryLoadModuleSymbols module.path = %s",module.path.c_str());
 
     PVOID pSymbolReaderHandle = nullptr;
     LoadSymbols(pMDImport, pModule, &pSymbolReaderHandle);
@@ -568,6 +570,7 @@ HRESULT Modules::TryLoadModuleSymbols(ICorDebugModule *pModule, Module &module, 
     if (needHotReload)
         IfFailRet(m_modulesAppUpdate.AddUpdateHandlerTypesForModule(pModule, pMDImport));
 
+    printf("\nVIKAS_LOG_MONO :: Modules::TryLoadModuleSymbols END");
     return S_OK;
 }
 
@@ -629,6 +632,7 @@ HRESULT Modules::GetModuleWithName(const std::string &name, ICorDebugModule **pp
         ModuleInfo &mdInfo = info_pair.second;
 
         std::string path = GetModuleFileName(mdInfo.m_iCorModule);
+        printf("\nVIKAS_LOG :: Modules::GetModuleWithName path = %s",path.c_str());
 
         if (onlyWithPDB && mdInfo.m_symbolReaderHandles.empty())
             continue;

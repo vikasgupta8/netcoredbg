@@ -69,6 +69,7 @@ struct dbgshim_t
         libName += "libdbgshim.so";
 #endif
 
+        printf("\nVIKAS_LOG_SHIM :: dbgshim_t() libName = %s", libName.c_str());
         m_module = DLOpen(libName);
         if (!m_module)
             throw std::invalid_argument("Unable to load " + libName);

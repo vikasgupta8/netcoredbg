@@ -771,9 +771,14 @@ namespace NetCoreDbg
         /// <param name="stackProgram">stack machine program handle return</param>
         /// <param name="textOutput">BSTR with text information return</param>
         /// <returns>HResult code with execution status</returns>
-        internal static int GenerateStackMachineProgram([MarshalAs(UnmanagedType.LPWStr)] string expression, out IntPtr stackProgram, out IntPtr textOutput)
+	[UnmanagedCallersOnly]
+        internal unsafe static int GenerateStackMachineProgram(IntPtr _expression, IntPtr *pstackProgram, IntPtr *ptextOutput)
         {
-            stackProgram = IntPtr.Zero;
+	    string expression = Marshal.PtrToStringUTF8(_expression);
+	    ref IntPtr stackProgram = ref *pstackProgram;
+	    ref IntPtr textOutput = ref *ptextOutput;
+
+	    stackProgram = IntPtr.Zero;
             textOutput = IntPtr.Zero;
 
             try
@@ -831,6 +836,7 @@ namespace NetCoreDbg
         /// </summary>
         /// <param name="StackProgram">stack machine program handle returned by GenerateStackMachineProgram()</param>
         /// <returns></returns>
+	[UnmanagedCallersOnly]
         internal static void ReleaseStackMachineProgram(IntPtr StackProgram)
         {
             Debug.Assert(StackProgram != IntPtr.Zero);
@@ -855,9 +861,14 @@ namespace NetCoreDbg
         /// <param name="Arguments">pointer to Arguments unmanaged memory return</param>
         /// <param name="textOutput">BSTR with text information return</param>
         /// <returns>HResult code with execution status</returns>
-        internal static int NextStackCommand(IntPtr StackProgram, out int Command, out IntPtr Arguments, out IntPtr textOutput)
+	[UnmanagedCallersOnly]
+        internal unsafe static int NextStackCommand(IntPtr StackProgram, int *pCommand, IntPtr *pArguments, IntPtr *ptextOutput)
         {
             Debug.Assert(StackProgram != IntPtr.Zero);
+
+	    ref int Command = ref *pCommand;
+	    ref IntPtr Arguments = ref *pArguments;
+	    ref IntPtr textOutput = ref *ptextOutput;
 
             Command = 0;
             Arguments = IntPtr.Zero;

@@ -96,9 +96,10 @@ namespace
     // Caller must care about m_debugProcessRWLock.
     HRESULT CheckDebugProcess(ICorDebugProcess *pProcess, std::mutex &processAttachedMutex, ProcessAttachedState processAttachedState)
     {
-        if (!pProcess)
+        if (!pProcess){
+            printf("\nVIKAS_LOG :: CheckDebugProcess E_FAIL");
             return E_FAIL;
-
+	}
         // We might have case, when process was exited/detached, but m_iCorProcess still not free and hold invalid object.
         // Note, we can't hold this lock, since this could deadlock execution at ICorDebugManagedCallback::ExitProcess call.
         std::unique_lock<std::mutex> lockAttachedMutex(processAttachedMutex);
@@ -120,6 +121,7 @@ void ManagedDebugger::NotifyProcessCreated()
 {
     std::unique_lock<std::mutex> lock(m_processAttachedMutex);
     m_processAttachedState = ProcessAttachedState::Attached;
+    printf("\nVIKAS_LOG :: manageddebugger.cpp ManagedDebugger::NotifyProcessCreated -> Attached");
     lock.unlock();
     m_processAttachedCV.notify_one();
 }
@@ -128,6 +130,7 @@ void ManagedDebugger::NotifyProcessExited()
 {
     std::unique_lock<std::mutex> lock(m_processAttachedMutex);
     m_processAttachedState = ProcessAttachedState::Unattached;
+    printf("\nVIKAS_LOG :: manageddebugger.cpp ManagedDebugger::NotifyProcessExited -> Unattached");
     lock.unlock();
     m_processAttachedCV.notify_one();
 }
@@ -193,6 +196,7 @@ ManagedDebugger::ManagedDebugger() :
         std::bind(&ManagedDebugger::InputCallback, this, std::placeholders::_1, std::placeholders::_2)
     )
 {
+    printf("\nVIKAS_LOG :: manageddebugger.cpp ManagedDebugger::ManagedDebugger -> Unattached");
     m_sharedEvalStackMachine->SetupEval(m_sharedEvaluator, m_sharedEvalHelpers, m_sharedEvalWaiter);
     m_sharedThreads->SetEvaluator(m_sharedEvaluator);
 }
@@ -214,6 +218,7 @@ HRESULT ManagedDebugger::Initialize()
 HRESULT ManagedDebugger::RunIfReady()
 {
     FrameId::invalidate();
+    printf("\nVIKAS_LOG :: ManagedDebugger::RunIfReady START");
 
     if (m_startMethod == StartNone || !m_isConfigurationDone)
         return S_OK;
@@ -268,6 +273,7 @@ HRESULT ManagedDebugger::Disconnect(DisconnectAction action)
 {
     LogFuncEntry();
 
+    printf("\nVIKAS_LOG :: ManagedDebugger::Disconnect START");
     bool terminate;
     switch(action)
     {
@@ -325,6 +331,7 @@ HRESULT ManagedDebugger::StepCommand(ThreadId threadId, StepType stepType)
     if (m_managedCallback->IsRunning())
     {
         LOGW("Can't 'Step', process already running.");
+        printf("\nVIKAS_LOG :: ManagedDebugger::StepCommand E_FAIL");
         return E_FAIL;
     }
 
@@ -378,6 +385,7 @@ HRESULT ManagedDebugger::Continue(ThreadId threadId)
 HRESULT ManagedDebugger::Pause(ThreadId lastStoppedThread)
 {
     LogFuncEntry();
+    printf("\nVIKAS_LOG :: ManagedDebugger::Pause START");
 
     std::lock_guard<Utility::RWLock::Reader> guardProcessRWLock(m_debugProcessRWLock.reader);
     HRESULT Status;
@@ -509,10 +517,11 @@ HRESULT ManagedDebugger::Startup(IUnknown *punk, DWORD pid)
 
     if (m_clrPath.empty())
         m_clrPath = GetCLRPath(m_dbgshim, pid);
-
+    
     // Note, ManagedPart must be initialized before callbacks setup, since callbacks use it.
     // ManagedPart must be initialized only once for process, since CoreCLR don't support unload and reinit
     // for global variables. coreclr_shutdown only should be called on process exit.
+    printf("\nVIKAS_LOG :: ManagedDebugger::Startup m_clrPath = %s",m_clrPath.c_str());
     Interop::Init(m_clrPath);
 
     m_managedCallback.reset(new ManagedCallback(*this));
@@ -525,6 +534,7 @@ HRESULT ManagedDebugger::Startup(IUnknown *punk, DWORD pid)
     }
 
     ToRelease<ICorDebugProcess> iCorProcess;
+    printf("\nVIKAS_LOG :: ManagedDebugger::Startup calling DebugActiveProcess");
     Status = iCorDebug->DebugActiveProcess(pid, FALSE, &iCorProcess);
     if (FAILED(Status))
     {
@@ -684,8 +694,10 @@ HRESULT ManagedDebugger::RunProcess(const std::string& fileExec, const std::vect
 
     std::unique_lock<std::mutex> lockAttachedMutex(m_processAttachedMutex);
     if (!m_processAttachedCV.wait_for(lockAttachedMutex, startupWaitTimeout, [this]{return m_processAttachedState == ProcessAttachedState::Attached;}))
+    {
+        printf("\nVIKAS_LOG :: ManagedDebugger::RunProcess E_FAIL");
         return E_FAIL;
-
+    }
    m_sharedProtocol->EmitExecEvent(PID{m_processId}, fileExec);
 
     return S_OK;
@@ -698,6 +710,7 @@ HRESULT ManagedDebugger::CheckNoProcess()
     if (!m_iCorProcess)
         return S_OK;
 
+    printf("\nVIKAS_LOG :: ManagedDebugger::CheckNoProcess START");
     std::unique_lock<std::mutex> lockAttachedMutex(m_processAttachedMutex);
     if (m_processAttachedState == ProcessAttachedState::Attached)
         return E_FAIL; // Already attached
@@ -715,6 +728,7 @@ HRESULT ManagedDebugger::DetachFromProcess()
         if (m_processAttachedState == ProcessAttachedState::Unattached)
             break;
 
+        printf("\nVIKAS_LOG :: ManagedDebugger::DetachFromProcess START");
         if (!m_iCorProcess)
             return E_FAIL;
 
@@ -729,6 +743,7 @@ HRESULT ManagedDebugger::DetachFromProcess()
             LOGE("Process terminate failed: %s", errormessage(Status));
 
         m_processAttachedState = ProcessAttachedState::Unattached; // Since we free process object anyway, reset process attached state.
+        printf("\nVIKAS_LOG :: manageddebugger.cpp ManagedDebugger::DetachFromProcess -> Unattached");
     } while(0);
 
     Cleanup();
@@ -743,6 +758,7 @@ HRESULT ManagedDebugger::TerminateProcess()
         if (m_processAttachedState == ProcessAttachedState::Unattached)
             break;
 
+        printf("\nVIKAS_LOG :: ManagedDebugger::TerminateProcess START");
         if (!m_iCorProcess)
             return E_FAIL;
 
@@ -761,6 +777,7 @@ HRESULT ManagedDebugger::TerminateProcess()
 
         LOGE("Process terminate failed: %s", errormessage(Status));
         m_processAttachedState = ProcessAttachedState::Unattached; // Since we free process object anyway, reset process attached state.
+        printf("\nVIKAS_LOG :: manageddebugger.cpp ManagedDebugger::TerminateProcess -> Unattached");
     } while(0);
 
     Cleanup();
@@ -797,13 +814,13 @@ void ManagedDebugger::Cleanup()
 HRESULT ManagedDebugger::AttachToProcess(DWORD pid)
 {
     HRESULT Status;
+    printf("\nVIKAS_LOG :: ManagedDebugger::AttachToProcess START");
 
     IfFailRet(CheckNoProcess());
 
     m_clrPath = GetCLRPath(m_dbgshim, pid);
     if (m_clrPath.empty())
         return E_INVALIDARG; // Unable to find libcoreclr.so
-
     WCHAR pBuffer[100];
     DWORD dwLength;
     IfFailRet(m_dbgshim.CreateVersionStringFromModule(
@@ -821,9 +838,13 @@ HRESULT ManagedDebugger::AttachToProcess(DWORD pid)
     IfFailRet(Startup(pCordb, pid));
 
     std::unique_lock<std::mutex> lockAttachedMutex(m_processAttachedMutex);
+    printf("\nVIKAS_LOG :: ManagedDebugger::AttachToProcess XXXXXXXX");
     if (!m_processAttachedCV.wait_for(lockAttachedMutex, startupWaitTimeout, [this]{return m_processAttachedState == ProcessAttachedState::Attached;}))
+    {
+        printf("\nVIKAS_LOG ::ManagedDebugger::AttachToProcess E_FAIL m_processAttachedState = %d ProcessAttachedState::Attached = %d", m_processAttachedState, ProcessAttachedState::Attached);
         return E_FAIL;
-
+    }
+    printf("\nVIKAS_LOG :: ManagedDebugger::AttachToProcess END");
     return S_OK;
 }
 
@@ -848,13 +869,18 @@ HRESULT ManagedDebugger::SetExceptionBreakpoints(const std::vector<ExceptionBrea
 
 static HRESULT InternalSetEnableCustomNotification(Modules *pModules, BOOL fEnable)
 {
+    printf("\nVIKAS_LOG :: InternalSetEnableCustomNotification START");
     HRESULT Status = S_OK;
 
     ToRelease<ICorDebugModule> pModule;
     IfFailRet(pModules->GetModuleWithName("System.Private.CoreLib.dll", &pModule));
 
     ToRelease<IUnknown> pMDUnknown;
+    printf("\nVIKAS_LOG :: InternalSetEnableCustomNotification calling GetMetaDataInterface start");
+    printf("\nVIKAS_LOG :: InternalSetEnableCustomNotification calling GetMetaDataInterface start");
     IfFailRet(pModule->GetMetaDataInterface(IID_IMetaDataImport, &pMDUnknown));
+    printf("\nVIKAS_LOG :: InternalSetEnableCustomNotification calling GetMetaDataInterface end");
+    printf("\nVIKAS_LOG :: InternalSetEnableCustomNotification calling GetMetaDataInterface end");
 
     ToRelease<IMetaDataImport> pMD;
     IfFailRet(pMDUnknown->QueryInterface(IID_IMetaDataImport, (LPVOID*) &pMD));
@@ -1008,6 +1034,7 @@ HRESULT ManagedDebugger::GetFrameLocation(ICorDebugFrame *pFrame, ThreadId threa
 static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebugThread *pThread, FrameLevel startFrame,
                                      unsigned maxFrames, std::vector<StackFrame> &stackFrames, int &totalFrames, bool hotReloadAwareCaller)
 {
+    printf("\nVIKAS_LOG :: InternalGetStackTrace START");
     LogFuncEntry();
 
     HRESULT Status;
@@ -1265,6 +1292,7 @@ static HRESULT GetModuleOfCurrentThreadCode(ICorDebugProcess *pProcess, int last
 
     ToRelease<ICorDebugFrame> pFrame;
     IfFailRet(pThread->GetActiveFrame(&pFrame));
+    printf("\nVIKAS_LOG :: ManagedDebugger::GetModuleOfCurrentThreadCode START");
     if (pFrame == nullptr)
         return E_FAIL;
 
@@ -1333,6 +1361,7 @@ static HRESULT ApplyMetadataAndILDeltas(Modules *pModules, const std::string &dl
     if (!deltaILFileStream.is_open() || !deltaMDFileStream.is_open())
         return COR_E_FILENOTFOUND;
 
+    printf("\nVIKAS_LOG :: ManagedDebugger::ApplyMetadataAndILDeltas START");
     auto deltaILSize = deltaILFileStream.tellg();
     if (deltaILSize < 0)
         return E_FAIL;
@@ -1412,6 +1441,7 @@ HRESULT ManagedDebugger::FindEvalCapableThread(ToRelease<ICorDebugThread> &pThre
         pThread.Free();
     }
 
+    printf("\nVIKAS_LOG :: ManagedDebugger::FindEvalCapableThread E_FAIL");
     return E_FAIL;
 }
 
@@ -1422,6 +1452,7 @@ HRESULT ManagedDebugger::HotReloadApplyDeltas(const std::string &dllFileName, co
 
     std::lock_guard<Utility::RWLock::Reader> guardProcessRWLock(m_debugProcessRWLock.reader);
 
+    printf("\nVIKAS_LOG :: ManagedDebugger::HotReloadApplyDeltas START");
     if (!m_iCorProcess)
         return E_FAIL;
 

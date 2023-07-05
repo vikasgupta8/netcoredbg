@@ -217,10 +217,9 @@ void Init(const std::string &coreClrPath)
     if (createDelegate == nullptr)
         throw std::runtime_error("coreclr_create_delegate not found");
 
-    shutdownCoreClr = (coreclr_shutdown_ptr)DLSym(coreclrLib, "coreclr_shutdown");
+    shutdownCoreClr = (coreclr_shutdown_ptr)DLSym(coreclrLib, "coreclr_shutdown_2");
     if (shutdownCoreClr == nullptr)
         throw std::runtime_error("coreclr_shutdown not found");
-
     bool allDelegatesCreated = 
         SUCCEEDED(Status = createDelegate(hostHandle, domainId, ManagedPartDllName, SymbolReaderClassName, "LoadSymbolsForModule", (void **)&loadSymbolsForModuleDelegate)) &&
         SUCCEEDED(Status = createDelegate(hostHandle, domainId, ManagedPartDllName, SymbolReaderClassName, "Dispose", (void **)&disposeDelegate)) &&
