@@ -218,12 +218,10 @@ HRESULT ManagedCallback::AddCallbackToQueue(ICorDebugAppDomain *pAppDomain, std:
     // Note, we don't check m_callbacksQueue.empty() here, since callback() must add entry to queue.
     ToRelease<ICorDebugProcess> iCorProcess;
     if (SUCCEEDED(pAppDomain->GetProcess(&iCorProcess)) && HasQueuedCallbacks(iCorProcess))
-    {
         pAppDomain->Continue(0);
-    }
-    else{
+    else
         m_callbacksCV.notify_one(); // notify_one with lock
-    }
+
     return S_OK;
 }
 
@@ -250,10 +248,7 @@ HRESULT ManagedCallback::ContinueAppDomainWithCallbacksQueue(ICorDebugAppDomain 
         pAppDomain->Continue(0);
     }
     else
-    {
-	printf("\nVIKAS_LOG :: ManagedCallback::ContinueAppDomainWithCallbacksQueue calling m_callbacksCV.notify_one()");
         m_callbacksCV.notify_one(); // notify_one with lock
-    }
 
     return S_OK;
 }
@@ -278,10 +273,9 @@ HRESULT ManagedCallback::ContinueProcessWithCallbacksQueue(ICorDebugProcess *pPr
 
         pProcess->Continue(0);
     }
-    else{
-	printf("\nVIKAS_LOG :: ManagedCallback::ContinueProcessWithCallbacksQueue calling m_callbacksCV.notify_one()");
+    else
         m_callbacksCV.notify_one(); // notify_one with lock
-    }
+
     return S_OK;
 }
 
@@ -301,7 +295,6 @@ HRESULT ManagedCallback::Continue(ICorDebugProcess *pProcess)
     if (m_callbacksQueue.empty())
         return pProcess->Continue(0);
 
-    printf("\nVIKAS_LOG :: ManagedCallback::Continue calling m_callbacksCV.notify_one()");
     m_callbacksCV.notify_one(); // notify_one with lock
     return S_OK;
 }
@@ -388,7 +381,6 @@ HRESULT ManagedCallback::Pause(ICorDebugProcess *pProcess, ThreadId lastStoppedT
             int totalFrames = 0;
             std::vector<StackFrame> stackFrames;
 
-            printf("\nVIKAS_LOG :: ManagedCallback::Pause -> GetStackTrace with thread.id = %d",thread.id);
             if (FAILED(m_debugger.GetStackTrace(thread.id, FrameLevel(0), 0, stackFrames, totalFrames)))
                 continue;
 
@@ -422,7 +414,6 @@ ManagedCallback::~ManagedCallback()
     m_callbacksQueue.clear();
     m_callbacksQueue.emplace_front(CallbackQueueCall::FinishWorker, nullptr, nullptr, nullptr, STEP_NORMAL, ExceptionCallbackType::FIRST_CHANCE);
     m_stopEventInProcess = false; // forced to proceed during brake too
-    printf("\nVIKAS_LOG :: ManagedCallback::~ManagedCallback calling m_callbacksCV.notify_one()");
     m_callbacksCV.notify_one(); // notify_one with lock
     lock.unlock();
     m_callbacksWorker.join();
@@ -557,7 +548,6 @@ HRESULT STDMETHODCALLTYPE ManagedCallback::EvalException(ICorDebugAppDomain *pAp
 HRESULT STDMETHODCALLTYPE ManagedCallback::CreateProcess(ICorDebugProcess *pProcess)
 {
     LogFuncEntry();
-    printf("\nVIKAS_LOG :: ManagedCallback::CreateProcess START");
 
     // Important! Care about callback queue before NotifyProcessCreated() call.
     // In case of `attach`, NotifyProcessCreated() call will notify debugger that debuggee process attached and debugger
@@ -579,7 +569,6 @@ HRESULT STDMETHODCALLTYPE ManagedCallback::CreateProcess(ICorDebugProcess *pProc
             });
         }
     }
-    printf("\nVIKAS_LOG :: ManagedCallback::CreateProcess END");
 
     return ContinueProcessWithCallbacksQueue(pProcess);
 }
@@ -621,22 +610,15 @@ HRESULT STDMETHODCALLTYPE ManagedCallback::ExitProcess(ICorDebugProcess *pProces
 HRESULT STDMETHODCALLTYPE ManagedCallback::CreateThread(ICorDebugAppDomain *pAppDomain, ICorDebugThread *pThread)
 {
     LogFuncEntry();
-    printf("\nVIKAS_LOG :: ManagedCallback::CreateThread START");
 
     if (m_debugger.m_sharedEvalWaiter->IsEvalRunning())
         LOGW("Thread was created by user code during evaluation with implicit user code execution.");
 
     ThreadId threadId(getThreadId(pThread));
-    printf("\nVIKAS_LOG :: ManagedCallback::CreateThread threadId = %d",threadId);
-    //threadId = ThreadId(2077806);
-    //printf("\nVIKAS_LOG :: ManagedCallback::CreateThread iharcoded threadId = %d",threadId);
     m_debugger.m_sharedThreads->Add(threadId);
 
-    printf("\nVIKAS_LOG :: ManagedCallback::CreateThread pThread = %p",pThread);
-    printf("\nVIKAS_LOG :: ManagedCallback::CreateThread threadId = %d",threadId);
     
     m_debugger.m_sharedProtocol->EmitThreadEvent(ThreadEvent(ThreadStarted, threadId));
-    printf("\nVIKAS_LOG :: ManagedCallback::CreateThread calling ContinueAppDomainWithCallbacksQueue");
     return ContinueAppDomainWithCallbacksQueue(pAppDomain);
 }
 
