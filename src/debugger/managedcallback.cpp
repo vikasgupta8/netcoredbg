@@ -617,7 +617,6 @@ HRESULT STDMETHODCALLTYPE ManagedCallback::CreateThread(ICorDebugAppDomain *pApp
     ThreadId threadId(getThreadId(pThread));
     m_debugger.m_sharedThreads->Add(threadId);
 
-    
     m_debugger.m_sharedProtocol->EmitThreadEvent(ThreadEvent(ThreadStarted, threadId));
     return ContinueAppDomainWithCallbacksQueue(pAppDomain);
 }

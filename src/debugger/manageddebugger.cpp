@@ -807,6 +807,7 @@ HRESULT ManagedDebugger::AttachToProcess(DWORD pid)
     m_clrPath = GetCLRPath(m_dbgshim, pid);
     if (m_clrPath.empty())
         return E_INVALIDARG; // Unable to find libcoreclr.so
+
     WCHAR pBuffer[100];
     DWORD dwLength;
     IfFailRet(m_dbgshim.CreateVersionStringFromModule(
@@ -824,12 +825,9 @@ HRESULT ManagedDebugger::AttachToProcess(DWORD pid)
     IfFailRet(Startup(pCordb, pid));
 
     std::unique_lock<std::mutex> lockAttachedMutex(m_processAttachedMutex);
-    printf("\nVIKAS_LOG :: ManagedDebugger::AttachToProcess XXXXXXXX");
     if (!m_processAttachedCV.wait_for(lockAttachedMutex, startupWaitTimeout, [this]{return m_processAttachedState == ProcessAttachedState::Attached;}))
-    {
-        printf("\nVIKAS_LOG ::ManagedDebugger::AttachToProcess E_FAIL m_processAttachedState = %d ProcessAttachedState::Attached = %d", m_processAttachedState, ProcessAttachedState::Attached);
         return E_FAIL;
-    }
+
     printf("\nVIKAS_LOG :: ManagedDebugger::AttachToProcess END");
     return S_OK;
 }
