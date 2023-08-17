@@ -550,6 +550,7 @@ HRESULT ManagedDebugger::Startup(IUnknown *punk, DWORD pid)
 
     lockProcessRWLock.unlock();
 
+    printf("\nVIKAS_LOG :: ManagedDebugger::Startup m_processId = %d",m_processId);
     m_processId = pid;
 
 #ifdef FEATURE_PAL
@@ -942,6 +943,7 @@ HRESULT ManagedDebugger::AllBreakpointsActivate(bool act)
 static HRESULT InternalGetFrameLocation(ICorDebugFrame *pFrame, Modules *pModules, bool hotReload, ThreadId threadId, FrameLevel level, StackFrame &stackFrame, bool hotReloadAwareCaller)
 {
     HRESULT Status;
+    printf("\nVIKAS_LOG :: InternalGetFrameLocation START");
 
     ToRelease<ICorDebugFunction> pFunc;
     IfFailRet(pFrame->GetFunction(&pFunc));
@@ -954,6 +956,7 @@ static HRESULT InternalGetFrameLocation(ICorDebugFrame *pFrame, Modules *pModule
     if (hotReload)
     {
         // In case current (top) code version is 1, executed in this frame method version can't be not 1.
+        printf("\nVIKAS_LOG :: InternalGetFrameLocation ...2...");
         if (SUCCEEDED(pFunc->GetCurrentVersionNumber(&currentVersion)) && currentVersion != 1)
         {
             ToRelease<ICorDebugCode> pCode;
@@ -1005,8 +1008,11 @@ static HRESULT InternalGetFrameLocation(ICorDebugFrame *pFrame, Modules *pModule
     IfFailRet(pFrame->QueryInterface(IID_ICorDebugNativeFrame, (LPVOID*) &pNativeFrame));
     IfFailRet(pNativeFrame->GetIP(&nOffset));
 
+    printf("\nVIKAS_LOG :: InternalGetFrameLocation -> GetModuleId() START");
     IfFailRet(GetModuleId(pModule, stackFrame.moduleId));
+    printf("\nVIKAS_LOG :: InternalGetFrameLocation -> GetModuleId() END");
 
+    printf("\nVIKAS_LOG :: InternalGetFrameLocation ...2...");
     stackFrame.clrAddr.methodToken = methodToken;
     stackFrame.clrAddr.ilOffset = ilOffset;
     stackFrame.clrAddr.nativeOffset = nOffset;
@@ -1023,6 +1029,7 @@ static HRESULT InternalGetFrameLocation(ICorDebugFrame *pFrame, Modules *pModule
 
     TypePrinter::GetMethodName(pFrame, stackFrame.name);
 
+    printf("\nVIKAS_LOG :: InternalGetFrameLocation return OK END");
     return S_OK;
 }
 
@@ -1039,6 +1046,7 @@ static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebu
 
     HRESULT Status;
 
+    printf("\nVIKAS_LOG :: InternalGetStackTrace START pThread = %p",pThread);
     DWORD tid = 0;
     pThread->GetID(&tid);
     ThreadId threadId{tid};
@@ -1066,6 +1074,7 @@ static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebu
         if (maxFrames != 0 && currentFrame >= int(startFrame) + int(maxFrames))
             return S_OK;
 
+    	printf("\nVIKAS_LOG :: InternalGetStackTrace frameType = %d",frameType);
         switch(frameType)
         {
             case FrameUnknown:
@@ -1101,6 +1110,7 @@ static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebu
                 break;
             case FrameCLRManaged:
                 {
+    		    printf("\nVIKAS_LOG :: InternalGetStackTrace FrameCLRManaged");
                     StackFrame stackFrame;
                     InternalGetFrameLocation(pFrame, pModules, hotReload, threadId, FrameLevel{currentFrame}, stackFrame, hotReloadAwareCaller);
                     stackFrames.push_back(stackFrame);
@@ -1114,17 +1124,20 @@ static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebu
 
     totalFrames = currentFrame + 1;
 
+    printf("\nVIKAS_LOG :: InternalGetStackTrace END");
     return S_OK;
 }
 
 HRESULT ManagedDebugger::GetStackTrace(ThreadId  threadId, FrameLevel startFrame, unsigned maxFrames, std::vector<StackFrame> &stackFrames, int &totalFrames, bool hotReloadAwareCaller)
 {
+    printf("\nVIKAS_LOG :: ManagedDebugger::GetStackTrace START");
     LogFuncEntry();
 
     std::lock_guard<Utility::RWLock::Reader> guardProcessRWLock(m_debugProcessRWLock.reader);
     HRESULT Status;
     IfFailRet(CheckDebugProcess(m_iCorProcess, m_processAttachedMutex, m_processAttachedState));
 
+    printf("\nVIKAS_LOG :: ManagedDebugger::GetStackTrace threadId = %d",threadId);
     ToRelease<ICorDebugThread> pThread;
     IfFailRet(m_iCorProcess->GetThread(int(threadId), &pThread));
     return InternalGetStackTrace(m_sharedModules.get(), m_hotReload, pThread, startFrame, maxFrames, stackFrames, totalFrames, hotReloadAwareCaller);
