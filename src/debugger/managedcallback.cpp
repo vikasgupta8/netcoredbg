@@ -324,7 +324,6 @@ HRESULT ManagedCallback::Stop(ICorDebugProcess *pProcess)
 // Stop process and set last stopped thread. If `lastStoppedThread` not passed value from protocol, find best thread.
 HRESULT ManagedCallback::Pause(ICorDebugProcess *pProcess, ThreadId lastStoppedThread)
 {
-    printf("\nVIKAS_LOG :: ManagedCallback::Pause START");
     // Must be real thread ID or ThreadId::AllThreads.
     if (!lastStoppedThread)
         return E_INVALIDARG;
@@ -382,8 +381,9 @@ HRESULT ManagedCallback::Pause(ICorDebugProcess *pProcess, ThreadId lastStoppedT
             std::vector<StackFrame> stackFrames;
 
             if (FAILED(m_debugger.GetStackTrace(thread.id, FrameLevel(0), 0, stackFrames, totalFrames)))
+	    {
                 continue;
-
+	    }
             for (const StackFrame& stackFrame : stackFrames)
             {
                 if (stackFrame.source.IsNull())
@@ -402,7 +402,6 @@ HRESULT ManagedCallback::Pause(ICorDebugProcess *pProcess, ThreadId lastStoppedT
     // Fatal error during stop, just fail Pause request and don't stop process.
     m_stopEventInProcess = false;
     IfFailRet(pProcess->Continue(0));
-    printf("\nVIKAS_LOG :: ManagedCallback::Pause E_FAIL");
     return E_FAIL;
 }
 
@@ -564,7 +563,6 @@ HRESULT STDMETHODCALLTYPE ManagedCallback::CreateProcess(ICorDebugProcess *pProc
             // Don't AddRef() here for pAppDomain! We get it with AddRef() from Next() and will release in m_callbacksQueue by ToRelease destructor.
             return AddCallbackToQueue(pAppDomain, [&]()
             {
-	        printf("\nVIKAS_LOG :: ManagedCallback::CreateProcess inserting CallbackQueueCall::CreateProcess into queue");
                 m_callbacksQueue.emplace_back(CallbackQueueCall::CreateProcess, pAppDomain, nullptr, nullptr, STEP_NORMAL, ExceptionCallbackType::FIRST_CHANCE);
             });
         }
@@ -640,7 +638,6 @@ HRESULT STDMETHODCALLTYPE ManagedCallback::ExitThread(ICorDebugAppDomain *pAppDo
 
 HRESULT STDMETHODCALLTYPE ManagedCallback::LoadModule(ICorDebugAppDomain *pAppDomain, ICorDebugModule *pModule)
 {
-    printf("\nVIKAS_LOG :: ManagedCallback::LoadModule START");
     LogFuncEntry();
 
     Module module;
@@ -666,7 +663,6 @@ HRESULT STDMETHODCALLTYPE ManagedCallback::LoadModule(ICorDebugAppDomain *pAppDo
         m_debugger.m_sharedEvalStackMachine->FindPredefinedTypes(pModule);
     }*/
 
-    printf("\nVIKAS_LOG :: ManagedCallback::LoadModule END");
     return ContinueAppDomainWithCallbacksQueue(pAppDomain);
 }
 

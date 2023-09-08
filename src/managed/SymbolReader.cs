@@ -187,7 +187,7 @@ namespace NetCoreDbg
             try
             {
 		bool isFileLayout = Convert.ToBoolean(_isFileLayout);
-		string assemblyPath = Marshal.PtrToStringUTF8(_assemblyPath);
+		string assemblyPath = Marshal.PtrToStringUni(_assemblyPath);
 		ReadMemoryDelegate readMemory = (ReadMemoryDelegate)Marshal.GetDelegateForFunctionPointer(_readMemory, typeof(ReadMemoryDelegate));
 
                 TargetStream peStream = null;

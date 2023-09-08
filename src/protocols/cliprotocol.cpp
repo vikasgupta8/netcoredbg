@@ -1377,7 +1377,6 @@ HRESULT CLIProtocol::doCommand<CommandTag::Interrupt>(const std::vector<std::str
     }
 
     HRESULT Status;
-    printf("\nVIKAS_LOG :: CLIProtocol::doCommand calling Pause...1");
     IfFailRet(m_sharedDebugger->Pause(ThreadId::AllThreads));
     output = "^stopped";
     return S_OK;
@@ -1647,7 +1646,6 @@ HRESULT CLIProtocol::doCommand<CommandTag::Attach>(const std::vector<std::string
     lock.unlock();
 
     IfFailRet(m_sharedDebugger->ConfigurationDone());
-    printf("\nVIKAS_LOG :: CLIProtocol::doCommand calling Pause...2");
     IfFailRet(m_sharedDebugger->Pause(ThreadId::AllThreads));
     return S_OK;
 }
@@ -2355,7 +2353,6 @@ void CLIProtocol::Pause()
     if (m_processStatus == Running)
     {
         lock.unlock();
-        printf("\nVIKAS_LOG :: CLIProtocol::Pause calling Pause....3");
         m_sharedDebugger->Pause(ThreadId::AllThreads);
     }
 }

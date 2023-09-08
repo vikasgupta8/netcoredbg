@@ -214,7 +214,6 @@ HRESULT ManagedDebugger::Initialize()
 HRESULT ManagedDebugger::RunIfReady()
 {
     FrameId::invalidate();
-    printf("\nVIKAS_LOG :: ManagedDebugger::RunIfReady START");
 
     if (m_startMethod == StartNone || !m_isConfigurationDone)
         return S_OK;
@@ -379,7 +378,6 @@ HRESULT ManagedDebugger::Continue(ThreadId threadId)
 HRESULT ManagedDebugger::Pause(ThreadId lastStoppedThread)
 {
     LogFuncEntry();
-    printf("\nVIKAS_LOG :: ManagedDebugger::Pause START");
 
     std::lock_guard<Utility::RWLock::Reader> guardProcessRWLock(m_debugProcessRWLock.reader);
     HRESULT Status;
@@ -515,7 +513,6 @@ HRESULT ManagedDebugger::Startup(IUnknown *punk, DWORD pid)
     // Note, ManagedPart must be initialized before callbacks setup, since callbacks use it.
     // ManagedPart must be initialized only once for process, since CoreCLR don't support unload and reinit
     // for global variables. coreclr_shutdown only should be called on process exit.
-    printf("\nVIKAS_LOG :: ManagedDebugger::Startup m_clrPath = %s",m_clrPath.c_str());
     Interop::Init(m_clrPath);
 
     m_managedCallback.reset(new ManagedCallback(*this));
@@ -800,7 +797,6 @@ void ManagedDebugger::Cleanup()
 HRESULT ManagedDebugger::AttachToProcess(DWORD pid)
 {
     HRESULT Status;
-    printf("\nVIKAS_LOG :: ManagedDebugger::AttachToProcess START");
 
     IfFailRet(CheckNoProcess());
 
@@ -828,7 +824,6 @@ HRESULT ManagedDebugger::AttachToProcess(DWORD pid)
     if (!m_processAttachedCV.wait_for(lockAttachedMutex, startupWaitTimeout, [this]{return m_processAttachedState == ProcessAttachedState::Attached;}))
         return E_FAIL;
 
-    printf("\nVIKAS_LOG :: ManagedDebugger::AttachToProcess END");
     return S_OK;
 }
 
@@ -853,7 +848,6 @@ HRESULT ManagedDebugger::SetExceptionBreakpoints(const std::vector<ExceptionBrea
 
 static HRESULT InternalSetEnableCustomNotification(Modules *pModules, BOOL fEnable)
 {
-    printf("\nVIKAS_LOG :: InternalSetEnableCustomNotification START");
     HRESULT Status = S_OK;
 
     ToRelease<ICorDebugModule> pModule;
@@ -922,7 +916,6 @@ HRESULT ManagedDebugger::AllBreakpointsActivate(bool act)
 static HRESULT InternalGetFrameLocation(ICorDebugFrame *pFrame, Modules *pModules, bool hotReload, ThreadId threadId, FrameLevel level, StackFrame &stackFrame, bool hotReloadAwareCaller)
 {
     HRESULT Status;
-    printf("\nVIKAS_LOG :: InternalGetFrameLocation START");
 
     ToRelease<ICorDebugFunction> pFunc;
     IfFailRet(pFrame->GetFunction(&pFunc));
@@ -935,7 +928,6 @@ static HRESULT InternalGetFrameLocation(ICorDebugFrame *pFrame, Modules *pModule
     if (hotReload)
     {
         // In case current (top) code version is 1, executed in this frame method version can't be not 1.
-        printf("\nVIKAS_LOG :: InternalGetFrameLocation ...2...");
         if (SUCCEEDED(pFunc->GetCurrentVersionNumber(&currentVersion)) && currentVersion != 1)
         {
             ToRelease<ICorDebugCode> pCode;
@@ -987,11 +979,8 @@ static HRESULT InternalGetFrameLocation(ICorDebugFrame *pFrame, Modules *pModule
     IfFailRet(pFrame->QueryInterface(IID_ICorDebugNativeFrame, (LPVOID*) &pNativeFrame));
     IfFailRet(pNativeFrame->GetIP(&nOffset));
 
-    printf("\nVIKAS_LOG :: InternalGetFrameLocation -> GetModuleId() START");
     IfFailRet(GetModuleId(pModule, stackFrame.moduleId));
-    printf("\nVIKAS_LOG :: InternalGetFrameLocation -> GetModuleId() END");
 
-    printf("\nVIKAS_LOG :: InternalGetFrameLocation ...2...");
     stackFrame.clrAddr.methodToken = methodToken;
     stackFrame.clrAddr.ilOffset = ilOffset;
     stackFrame.clrAddr.nativeOffset = nOffset;
@@ -1008,7 +997,7 @@ static HRESULT InternalGetFrameLocation(ICorDebugFrame *pFrame, Modules *pModule
 
     TypePrinter::GetMethodName(pFrame, stackFrame.name);
 
-    printf("\nVIKAS_LOG :: InternalGetFrameLocation return OK END");
+    printf("\nVIKAS_LOG :: InternalGetFrameLocation stackFrame.name = %s",stackFrame.name.c_str());
     return S_OK;
 }
 
@@ -1020,12 +1009,10 @@ HRESULT ManagedDebugger::GetFrameLocation(ICorDebugFrame *pFrame, ThreadId threa
 static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebugThread *pThread, FrameLevel startFrame,
                                      unsigned maxFrames, std::vector<StackFrame> &stackFrames, int &totalFrames, bool hotReloadAwareCaller)
 {
-    printf("\nVIKAS_LOG :: InternalGetStackTrace START");
     LogFuncEntry();
 
     HRESULT Status;
 
-    printf("\nVIKAS_LOG :: InternalGetStackTrace START pThread = %p",pThread);
     DWORD tid = 0;
     pThread->GetID(&tid);
     ThreadId threadId{tid};
@@ -1046,6 +1033,7 @@ static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebu
         NativeFrame *pNative,
         ICorDebugFunction *pFunction)
     {
+    	printf("\nVIKAS_LOG_NDBG :: InternalGetStackTrace currentFrame = %d",currentFrame);
         currentFrame++;
 
         if (currentFrame < int(startFrame))
@@ -1053,7 +1041,6 @@ static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebu
         if (maxFrames != 0 && currentFrame >= int(startFrame) + int(maxFrames))
             return S_OK;
 
-    	printf("\nVIKAS_LOG :: InternalGetStackTrace frameType = %d",frameType);
         switch(frameType)
         {
             case FrameUnknown:
@@ -1089,7 +1076,6 @@ static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebu
                 break;
             case FrameCLRManaged:
                 {
-    		    printf("\nVIKAS_LOG :: InternalGetStackTrace FrameCLRManaged");
                     StackFrame stackFrame;
                     InternalGetFrameLocation(pFrame, pModules, hotReload, threadId, FrameLevel{currentFrame}, stackFrame, hotReloadAwareCaller);
                     stackFrames.push_back(stackFrame);
@@ -1103,13 +1089,11 @@ static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebu
 
     totalFrames = currentFrame + 1;
 
-    printf("\nVIKAS_LOG :: InternalGetStackTrace END");
     return S_OK;
 }
 
 HRESULT ManagedDebugger::GetStackTrace(ThreadId  threadId, FrameLevel startFrame, unsigned maxFrames, std::vector<StackFrame> &stackFrames, int &totalFrames, bool hotReloadAwareCaller)
 {
-    printf("\nVIKAS_LOG :: ManagedDebugger::GetStackTrace START");
     LogFuncEntry();
 
     std::lock_guard<Utility::RWLock::Reader> guardProcessRWLock(m_debugProcessRWLock.reader);
