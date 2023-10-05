@@ -817,6 +817,9 @@ HRESULT ManagedDebugger::AttachToProcess(DWORD pid)
 
     IfFailRet(m_dbgshim.CreateDebuggingInterfaceFromVersionEx(CorDebugVersion_4_0, pBuffer, &pCordb));
 
+    if(pCordb)
+        pCordb->AddRef();
+
     m_unregisterToken = nullptr;
     IfFailRet(Startup(pCordb, pid));
 
@@ -997,7 +1000,6 @@ static HRESULT InternalGetFrameLocation(ICorDebugFrame *pFrame, Modules *pModule
 
     TypePrinter::GetMethodName(pFrame, stackFrame.name);
 
-    printf("\nVIKAS_LOG :: InternalGetFrameLocation stackFrame.name = %s",stackFrame.name.c_str());
     return S_OK;
 }
 
@@ -1033,7 +1035,6 @@ static HRESULT InternalGetStackTrace(Modules *pModules, bool hotReload, ICorDebu
         NativeFrame *pNative,
         ICorDebugFunction *pFunction)
     {
-    	printf("\nVIKAS_LOG_NDBG :: InternalGetStackTrace currentFrame = %d",currentFrame);
         currentFrame++;
 
         if (currentFrame < int(startFrame))

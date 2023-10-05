@@ -217,7 +217,7 @@ void Init(const std::string &coreClrPath)
     if (createDelegate == nullptr)
         throw std::runtime_error("coreclr_create_delegate not found");
 
-    shutdownCoreClr = (coreclr_shutdown_ptr)DLSym(coreclrLib, "coreclr_shutdown_2");
+    shutdownCoreClr = (coreclr_shutdown_ptr)DLSym(coreclrLib, "coreclr_shutdown");
     if (shutdownCoreClr == nullptr)
         throw std::runtime_error("coreclr_shutdown not found");
     bool allDelegatesCreated = 

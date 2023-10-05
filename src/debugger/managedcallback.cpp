@@ -381,10 +381,9 @@ HRESULT ManagedCallback::Pause(ICorDebugProcess *pProcess, ThreadId lastStoppedT
             std::vector<StackFrame> stackFrames;
 
             if (FAILED(m_debugger.GetStackTrace(thread.id, FrameLevel(0), 0, stackFrames, totalFrames)))
-	    {
                 continue;
-	    }
-            for (const StackFrame& stackFrame : stackFrames)
+
+	    for (const StackFrame& stackFrame : stackFrames)
             {
                 if (stackFrame.source.IsNull())
                     continue;
