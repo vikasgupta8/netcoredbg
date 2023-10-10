@@ -256,7 +256,7 @@ namespace NetCoreDbg
 	[UnmanagedCallersOnly]
         internal unsafe static IntPtr LoadDeltaPdb(IntPtr _pdbPath, IntPtr *pdata, int *pcount)
         {
-	    string pdbPath = Marshal.PtrToStringUTF8(_pdbPath);
+	    string pdbPath = Marshal.PtrToStringUni(_pdbPath);
 	    ref IntPtr data = ref *pdata;
 	    ref int count = ref *pcount;
             data = IntPtr.Zero;
@@ -673,7 +673,7 @@ namespace NetCoreDbg
                                                    int *pCount, IntPtr _sourcePath, IntPtr *pdata)
         {
 	    ref int Count = ref *pCount;
-	    string sourcePath = Marshal.PtrToStringUTF8(_sourcePath);
+	    string sourcePath = Marshal.PtrToStringUni(_sourcePath);
 	    ref IntPtr data = ref *pdata;
             Debug.Assert(symbolReaderHandles != IntPtr.Zero);
             Count = 0;
@@ -1447,7 +1447,7 @@ namespace NetCoreDbg
 	[UnmanagedCallersOnly]
         internal unsafe static RetCode GetSource(IntPtr symbolReaderHandle, IntPtr _fileName, int *plength, IntPtr *pdata)
         {
-	    string fileName = Marshal.PtrToStringUTF8(_fileName);
+	    string fileName = Marshal.PtrToStringUni(_fileName);
 	    ref int length = ref *plength;
 	    ref IntPtr data = ref *pdata;
             Debug.Assert(symbolReaderHandle != IntPtr.Zero);

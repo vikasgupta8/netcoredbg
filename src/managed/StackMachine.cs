@@ -774,7 +774,7 @@ namespace NetCoreDbg
 	[UnmanagedCallersOnly]
         internal unsafe static int GenerateStackMachineProgram(IntPtr _expression, IntPtr *pstackProgram, IntPtr *ptextOutput)
         {
-	    string expression = Marshal.PtrToStringUTF8(_expression);
+	    string expression = Marshal.PtrToStringUni(_expression);
 	    ref IntPtr stackProgram = ref *pstackProgram;
 	    ref IntPtr textOutput = ref *ptextOutput;
 

@@ -19,7 +19,7 @@ namespace NetCoreDbg
 	[UnmanagedCallersOnly]
         internal unsafe static RetCode StringToUpper(IntPtr _srcString, IntPtr *pdstString)
         {
-	    string srcString = Marshal.PtrToStringUTF8(_srcString);
+	    string srcString = Marshal.PtrToStringUni(_srcString);
 	    ref IntPtr dstString = ref *pdstString;
             dstString = IntPtr.Zero;
 
