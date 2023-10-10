@@ -383,7 +383,7 @@ HRESULT ManagedCallback::Pause(ICorDebugProcess *pProcess, ThreadId lastStoppedT
             if (FAILED(m_debugger.GetStackTrace(thread.id, FrameLevel(0), 0, stackFrames, totalFrames)))
                 continue;
 
-	    for (const StackFrame& stackFrame : stackFrames)
+            for (const StackFrame& stackFrame : stackFrames)
             {
                 if (stackFrame.source.IsNull())
                     continue;
@@ -656,11 +656,11 @@ HRESULT STDMETHODCALLTYPE ManagedCallback::LoadModule(ICorDebugAppDomain *pAppDo
     m_debugger.m_uniqueBreakpoints->ManagedCallbackLoadModuleAll(pModule);
 
     // enable Debugger.NotifyOfCrossThreadDependency after System.Private.CoreLib.dll loaded (trigger for 1 time call only)
-    /*if (module.name == "System.Private.CoreLib.dll")
+    if (module.name == "System.Private.CoreLib.dll")
     {
         m_debugger.SetEnableCustomNotification(TRUE);
         m_debugger.m_sharedEvalStackMachine->FindPredefinedTypes(pModule);
-    }*/
+    }
 
     return ContinueAppDomainWithCallbacksQueue(pAppDomain);
 }
