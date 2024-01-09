@@ -888,6 +888,9 @@ HRESULT ManagedDebuggerHelpers::AttachToProcess()
 
     IfFailRet(m_dbgshim.CreateDebuggingInterfaceFromVersionEx(CorDebugVersion_4_0, pBuffer, &pCordb));
 
+    if(pCordb)
+        pCordb->AddRef();
+
     m_unregisterToken = nullptr;
     IfFailRet(Startup(pCordb));
 
@@ -1005,9 +1008,6 @@ HRESULT ManagedDebuggerBase::GetFrameLocation(ICorDebugFrame *pFrame, ThreadId t
 {
     HRESULT Status;
 
-    stackFrame = StackFrame(threadId, level, "");
-    if (FAILED(TypePrinter::GetMethodName(pFrame, stackFrame.methodName)))
-        stackFrame.methodName = "Unnamed method in optimized code";
 
     ToRelease<ICorDebugFunction> pFunc;
     IfFailRet(pFrame->GetFunction(&pFunc));
@@ -1048,6 +1048,10 @@ HRESULT ManagedDebuggerBase::GetFrameLocation(ICorDebugFrame *pFrame, ThreadId t
         }
     }
 
+    stackFrame = StackFrame(threadId, level, "");
+    if (FAILED(TypePrinter::GetMethodName(pFrame, stackFrame.methodName)))
+        stackFrame.methodName = "Unnamed method in optimized code";
+    
     ULONG32 ilOffset;
     Modules::SequencePoint sp;
     if (SUCCEEDED(m_sharedModules->GetFrameILAndSequencePoint(pFrame, ilOffset, sp)))

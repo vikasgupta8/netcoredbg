@@ -149,8 +149,13 @@ namespace NetCoreDbg
             return typesMap[(BasicTypes)type](bytesArray);
         }
 
-        internal static RetCode CalculationDelegate(IntPtr firstOpPtr, int firstType, IntPtr secondOpPtr, int secondType, int operation, out int resultType, out IntPtr result, out IntPtr errorText)
+        [UnmanagedCallersOnly]
+        internal unsafe static RetCode CalculationDelegate(IntPtr firstOpPtr, int firstType, IntPtr secondOpPtr, int secondType, int operation, int *presultType, IntPtr *presult, IntPtr *perrorText)
         {
+	    ref int resultType = ref *presultType;
+	    ref IntPtr result = ref *presult;
+	    ref IntPtr errorText = ref *perrorText;
+	    
             resultType = 0;
             result = IntPtr.Zero;
             errorText = IntPtr.Zero;

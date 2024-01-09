@@ -123,8 +123,10 @@ bool CallbacksQueue::CallbacksWorkerException(ICorDebugAppDomain *pAppDomain, IC
     StoppedEvent event(StopException, threadId);
 
     // S_FALSE - not error and not affect on callback (callback will emit stop event)
+    /*
     if (S_FALSE != m_debugger.m_sharedBreakpoints->ManagedCallbackException(pThread, eventType, excModule, event))
         return false;
+    */
 
     ToRelease<ICorDebugFrame> pActiveFrame;
     if (SUCCEEDED(pThread->GetActiveFrame(&pActiveFrame)) && pActiveFrame != nullptr)
@@ -271,7 +273,7 @@ HRESULT CallbacksQueue::ContinueAppDomain(ICorDebugAppDomain *pAppDomain)
     std::unique_lock<std::mutex> lock(m_callbacksMutex);
 
     ToRelease<ICorDebugProcess> iCorProcess;
-    if (m_callbacksQueue.empty() || (pAppDomain && SUCCEEDED(pAppDomain->GetProcess(&iCorProcess)) && HasQueuedCallbacks(iCorProcess)))
+    if ((pAppDomain && SUCCEEDED(pAppDomain->GetProcess(&iCorProcess)) && HasQueuedCallbacks(iCorProcess)) || m_callbacksQueue.empty())
     {
         if (!pAppDomain)
             return E_NOTIMPL;
