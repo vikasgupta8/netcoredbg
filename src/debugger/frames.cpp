@@ -39,6 +39,8 @@ static std::uintptr_t GetIP(CONTEXT *context)
     return (std::uintptr_t)context->Pc;
 #elif defined(_TARGET_ARM64_)
     return (std::uintptr_t)context->Pc;
+#elif defined(_TARGET_PPC64LE_)
+    return (std::uintptr_t)context->Nip;
 #else
 #error "Unsupported platform"
 #endif
@@ -54,6 +56,8 @@ static std::uintptr_t GetSP(CONTEXT *context)
     return (std::uintptr_t)context->Sp;
 #elif defined(_TARGET_ARM64_)
     return (std::uintptr_t)context->Sp;
+#elif defined(_TARGET_PPC64LE_)
+    return (uint64_t)(size_t)context->R1;
 #else
 #error "Unsupported platform"
 #endif
@@ -69,6 +73,8 @@ static std::uintptr_t GetFP(CONTEXT *context)
     return (std::uintptr_t)context->R11;
 #elif defined(_TARGET_ARM64_)
     return (std::uintptr_t)context->Fp;
+#elif defined(_TARGET_PPC64LE_)
+    return (std::uintptr_t)context->R31;
 #else
 #error "Unsupported platform"
 #endif
@@ -84,6 +90,8 @@ static void SetFP(CONTEXT *context, std::uintptr_t value)
     context->R11 = value;
 #elif defined(_TARGET_ARM64_)
     context->Fp = value;
+#elif defined(_TARGET_PPC64LE_)
+    context->R31 = value;
 #else
 #error "Unsupported platform"
 #endif

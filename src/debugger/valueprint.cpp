@@ -624,7 +624,22 @@ HRESULT PrintValue(ICorDebugValue *pInputValue, std::string &output, bool escape
     BOOL isNull = TRUE;
     ToRelease<ICorDebugValue> pValue;
     IfFailRet(DereferenceAndUnboxValue(pInputValue, &pValue, &isNull));
+#if 0
+    ToRelease<ICorDebugClass> pClass;
+    ToRelease<ICorDebugValue2> pValue2;
+    ToRelease<ICorDebugType> pType;
+    ToRelease<ICorDebugModule> pModule;
+    IfFailRet(pValue->QueryInterface(IID_ICorDebugValue2, (LPVOID *) &pValue2));
+    IfFailRet(pValue2->GetExactType(&pType));
+    IfFailRet(pType->GetClass(&pClass));
+    IfFailRet(pClass->GetModule(&pModule));
 
+    WCHAR name[mdNameLen];
+    ULONG32 name_len = 0;
+    pModule->GetName(_countof(name), &name_len, name);
+    std::string moduleName = to_utf8(name);
+    printf("\nVIKAS_NCDB :: PrintValue -> moduleName = %s",moduleName.c_str());
+#endif
     if(isNull)
     {
         output = "null";

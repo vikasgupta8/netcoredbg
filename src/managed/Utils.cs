@@ -16,8 +16,11 @@ namespace NetCoreDbg
 
     public class Utils
     {
-        internal static RetCode StringToUpper([MarshalAs(UnmanagedType.LPWStr)] string srcString, out IntPtr dstString)
+        [UnmanagedCallersOnly]
+        internal unsafe static RetCode StringToUpper(IntPtr _srcString, IntPtr *pdstString)
         {
+	    string srcString = Marshal.PtrToStringUni(_srcString);
+	    ref IntPtr dstString = ref *pdstString;
             dstString = IntPtr.Zero;
 
             try
@@ -32,22 +35,26 @@ namespace NetCoreDbg
             return RetCode.OK;
         }
 
+        [UnmanagedCallersOnly]
         internal static IntPtr SysAllocStringLen(int size)
         {
             string empty = new String('\0', size);
             return Marshal.StringToBSTR(empty);
         }
 
+        [UnmanagedCallersOnly]
         internal static void SysFreeString(IntPtr ptr)
         {
             Marshal.FreeBSTR(ptr);
         }
 
+        [UnmanagedCallersOnly]
         internal static IntPtr CoTaskMemAlloc(int size)
         {
             return Marshal.AllocCoTaskMem(size);
         }
 
+        [UnmanagedCallersOnly]
         internal static void CoTaskMemFree(IntPtr ptr)
         {
             Marshal.FreeCoTaskMem(ptr);

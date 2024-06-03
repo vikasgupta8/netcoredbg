@@ -397,7 +397,22 @@ HRESULT Variables::Evaluate(
     ToRelease<ICorDebugValue> pResultValue;
     FrameLevel frameLevel = frameId.getLevel();
     IfFailRet(m_sharedEvalStackMachine->EvaluateExpression(pThread, frameLevel, variable.evalFlags, expression, &pResultValue, output, &variable.editable));
+#if 0
+    ToRelease<ICorDebugClass> pClass;
+    ToRelease<ICorDebugValue2> pValue2;
+    ToRelease<ICorDebugType> pType;
+    ToRelease<ICorDebugModule> pModule;
+    IfFailRet(pResultValue->QueryInterface(IID_ICorDebugValue2, (LPVOID *) &pValue2));
+    IfFailRet(pValue2->GetExactType(&pType));
+    IfFailRet(pType->GetClass(&pClass));
+    IfFailRet(pClass->GetModule(&pModule));
 
+    WCHAR name[mdNameLen];
+    ULONG32 name_len = 0;
+    pModule->GetName(_countof(name), &name_len, name);
+    std::string moduleName = to_utf8(name);
+    printf("\nVIKAS_NCDB :: Variables::Evaluate -> moduleName = %s",moduleName.c_str());
+#endif
     variable.evaluateName = expression;
     IfFailRet(PrintValue(pResultValue, variable.value));
     IfFailRet(TypePrinter::GetTypeOfValue(pResultValue, variable.type));

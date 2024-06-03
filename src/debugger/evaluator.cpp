@@ -748,9 +748,26 @@ static HRESULT InternalWalkMembers(EvalHelpers *pEvalHelpers, ICorDebugValue *pI
 
     CorElementType corElemType;
     IfFailRet(pType->GetType(&corElemType));
-    if (corElemType == ELEMENT_TYPE_STRING)
-        return S_OK;
-
+    switch (corElemType)
+    {
+	case ELEMENT_TYPE_CHAR:
+	case ELEMENT_TYPE_BOOLEAN:
+	case ELEMENT_TYPE_STRING:
+	case ELEMENT_TYPE_I1:
+	case ELEMENT_TYPE_U1:
+	case ELEMENT_TYPE_I2:
+	case ELEMENT_TYPE_U2:
+	case ELEMENT_TYPE_I4:
+	case ELEMENT_TYPE_U4:
+	case ELEMENT_TYPE_I8:
+	case ELEMENT_TYPE_U8:
+	case ELEMENT_TYPE_R4:
+	case ELEMENT_TYPE_R8:
+		return S_OK;
+	break;
+	default:
+	break;
+    }
     ToRelease<ICorDebugClass> pClass;
     IfFailRet(pType->GetClass(&pClass));
     ToRelease<ICorDebugModule> pModule;
@@ -1473,6 +1490,24 @@ static HRESULT InternalWalkStackVars(Modules *pModules, ICorDebugThread *pThread
                 IfFailRet(pFrame->QueryInterface(IID_ICorDebugILFrame, (LPVOID*) &pILFrame));
             }
             return pILFrame->GetLocalVariable(i, ppResultValue);
+            /*
+	    pILFrame->GetLocalVariable(i, ppResultValue);
+	    ToRelease<ICorDebugClass> pClass;
+	    ToRelease<ICorDebugValue2> pValue2;
+	    ToRelease<ICorDebugType> pType;
+	    ToRelease<ICorDebugModule> pModule;
+	    IfFailRet((*ppResultValue)->QueryInterface(IID_ICorDebugValue2, (LPVOID *) &pValue2));
+	    IfFailRet(pValue2->GetExactType(&pType));
+	    IfFailRet(pType->GetClass(&pClass));
+	    IfFailRet(pClass->GetModule(&pModule));
+
+	    WCHAR name[mdNameLen];
+	    ULONG32 name_len = 0;
+	    pModule->GetName(_countof(name), &name_len, name);
+	    std::string moduleName = to_utf8(name);
+	    printf("\nVIKAS_NCDB :: InternalWalkStackVars -> getValue -> ppResultValue moduleName = %s",moduleName.c_str());
+	    return S_OK;
+	    */
         };
 
         // Note, this method could have lambdas inside, display class local objects must be also checked,
@@ -1720,6 +1755,7 @@ static HRESULT InternalResolveIdentifiers(Modules *pModules, EvalHelpers *pEvalH
     }
     else
     {
+        nextIdentifier++;
         ToRelease<ICorDebugType> pType;
         IfFailRet(EvalUtils::FindType(identifiers, nextIdentifier, pThread, pModules, nullptr, &pType));
         IfFailRet(pEvalHelpers->CreatTypeObjectStaticConstructor(pThread, pType, &pResolvedValue));
@@ -1750,6 +1786,22 @@ HRESULT Evaluator::ResolveIdentifiers(ICorDebugThread *pThread, FrameLevel frame
                                       std::vector<std::string> &identifiers, ICorDebugValue **ppResultValue, std::unique_ptr<SetterData> *resultSetterData,
                                       ICorDebugType **ppResultType, int evalFlags)
 {
+    /*HRESULT Status;
+    ToRelease<ICorDebugClass> pClass;
+    ToRelease<ICorDebugValue2> pValue2;
+    ToRelease<ICorDebugType> pType;
+    ToRelease<ICorDebugModule> pModule;
+    IfFailRet(pInputValue->QueryInterface(IID_ICorDebugValue2, (LPVOID *) &pValue2));
+    IfFailRet(pValue2->GetExactType(&pType));
+    IfFailRet(pType->GetClass(&pClass));
+    IfFailRet(pClass->GetModule(&pModule));
+
+    WCHAR name[mdNameLen];
+    ULONG32 name_len = 0;
+    pModule->GetName(_countof(name), &name_len, name);*/
+    //std::string moduleName = to_utf8(name/*, name_len*/);
+    //printf("\nVIKAS_NCDB :: Evaluator::ResolveIdentifiers -> moduleName = %s",moduleName.c_str());
+
     return InternalResolveIdentifiers(m_sharedModules.get(), m_sharedEvalHelpers.get(), pThread, frameLevel, pInputValue,
                                       inputSetterData, identifiers, ppResultValue, resultSetterData, ppResultType, evalFlags);
 }

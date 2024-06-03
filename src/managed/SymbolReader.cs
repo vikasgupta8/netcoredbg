@@ -180,11 +180,16 @@ namespace NetCoreDbg
         /// <param name="inMemoryPdbSize">in memory PDB size</param>
         /// <param name="readMemory">read memory callback</param>
         /// <returns>Symbol reader handle or zero if error</returns>
-        internal static IntPtr LoadSymbolsForModule([MarshalAs(UnmanagedType.LPWStr)] string assemblyPath, bool isFileLayout, ulong loadedPeAddress, int loadedPeSize, 
-            ulong inMemoryPdbAddress, int inMemoryPdbSize, ReadMemoryDelegate readMemory)
-        {
+        [UnmanagedCallersOnly]
+        internal static IntPtr LoadSymbolsForModule(IntPtr _assemblyPath, int _isFileLayout, ulong loadedPeAddress, int loadedPeSize, 
+            ulong inMemoryPdbAddress, int inMemoryPdbSize, IntPtr _readMemory)
+	{
             try
             {
+		bool isFileLayout = Convert.ToBoolean(_isFileLayout);
+		string assemblyPath = Marshal.PtrToStringUni(_assemblyPath);
+		ReadMemoryDelegate readMemory = (ReadMemoryDelegate)Marshal.GetDelegateForFunctionPointer(_readMemory, typeof(ReadMemoryDelegate));
+
                 TargetStream peStream = null;
                 if (assemblyPath == null && loadedPeAddress != 0)
                 {
@@ -248,8 +253,12 @@ namespace NetCoreDbg
         /// </summary>
         /// <param name="isFileLayout">Delta PDB file path</param>
         /// <returns>Symbol reader handle or zero if error</returns>
-        internal static IntPtr LoadDeltaPdb([MarshalAs(UnmanagedType.LPWStr)] string pdbPath, out IntPtr data, out int count)
+        [UnmanagedCallersOnly]
+        internal unsafe static IntPtr LoadDeltaPdb(IntPtr _pdbPath, IntPtr *pdata, int *pcount)
         {
+	    string pdbPath = Marshal.PtrToStringUni(_pdbPath);
+	    ref IntPtr data = ref *pdata;
+	    ref int count = ref *pcount;
             data = IntPtr.Zero;
             count = 0;
 
@@ -303,6 +312,7 @@ namespace NetCoreDbg
         /// Cleanup and dispose of symbol reader handle
         /// </summary>
         /// <param name="symbolReaderHandle">symbol reader handle returned by LoadSymbolsForModule</param>
+        [UnmanagedCallersOnly]
         internal static void Dispose(IntPtr symbolReaderHandle)
         {
             Debug.Assert(symbolReaderHandle != IntPtr.Zero);
@@ -339,8 +349,10 @@ namespace NetCoreDbg
         /// <param name="ilOffset">IL offset</param>
         /// <param name="sequencePoint">sequence point return</param>
         /// <returns>"Ok" if information is available</returns>
-        private static RetCode GetSequencePointByILOffset(IntPtr symbolReaderHandle, int methodToken, uint ilOffset, out DbgSequencePoint sequencePoint)
+        [UnmanagedCallersOnly]
+        private unsafe static RetCode GetSequencePointByILOffset(IntPtr symbolReaderHandle, int methodToken, uint ilOffset, DbgSequencePoint *psequencePoint)
         {
+	    ref DbgSequencePoint sequencePoint = ref *psequencePoint;
             Debug.Assert(symbolReaderHandle != IntPtr.Zero);
             sequencePoint.document = IntPtr.Zero;
             sequencePoint.startLine = 0;
@@ -399,8 +411,12 @@ namespace NetCoreDbg
         /// <param name="points">result - array of sequence points</param>
         /// <param name="pointsCount">result - count of elements in array of sequence points</param>
         /// <returns>"Ok" if information is available</returns>
-        private static RetCode GetSequencePoints(IntPtr symbolReaderHandle, int methodToken, out IntPtr points, out int pointsCount)
+        [UnmanagedCallersOnly]
+        private unsafe static RetCode GetSequencePoints(IntPtr symbolReaderHandle, int methodToken, IntPtr *ppoints, int *ppointsCount)
         {
+	    ref IntPtr points = ref *ppoints;
+	    ref int pointsCount = ref *ppointsCount;
+
             Debug.Assert(symbolReaderHandle != IntPtr.Zero);
             var list = new List<DbgSequencePoint>();
             pointsCount = 0;
@@ -467,8 +483,11 @@ namespace NetCoreDbg
         /// <param name="sequencePoint">sequence point return</param>
         /// <param name="noUserCodeFound">return 1 in case all sequence points checked and no user code was found, otherwise return 0</param>
         /// <returns>"Ok" if information is available</returns>
-        private static RetCode GetNextUserCodeILOffset(IntPtr symbolReaderHandle, int methodToken, uint ilOffset, out uint ilNextOffset, out int noUserCodeFound)
+        [UnmanagedCallersOnly]
+        private unsafe static RetCode GetNextUserCodeILOffset(IntPtr symbolReaderHandle, int methodToken, uint ilOffset, uint *pilNextOffset, int *pnoUserCodeFound)
         {
+	    ref uint ilNextOffset = ref *pilNextOffset;
+	    ref int noUserCodeFound = ref *pnoUserCodeFound;
             Debug.Assert(symbolReaderHandle != IntPtr.Zero);
             ilNextOffset = 0;
             noUserCodeFound = 0;
@@ -574,8 +593,10 @@ namespace NetCoreDbg
         /// <param name="normalTokens">array of normal methods tokens</param>
         /// <param name="data">pointer to memory with result</param>
         /// <returns>"Ok" if information is available</returns>
-        internal static RetCode GetModuleMethodsRanges(IntPtr symbolReaderHandle, uint constrNum, IntPtr constrTokens, uint normalNum, IntPtr normalTokens, out IntPtr data)
+        [UnmanagedCallersOnly]
+        internal unsafe static RetCode GetModuleMethodsRanges(IntPtr symbolReaderHandle, uint constrNum, IntPtr constrTokens, uint normalNum, IntPtr normalTokens, IntPtr *pdata)
         {
+	    ref IntPtr data = ref *pdata;
             Debug.Assert(symbolReaderHandle != IntPtr.Zero);
             data = IntPtr.Zero;
             var unmanagedPTRList = new List<IntPtr>();
@@ -722,9 +743,13 @@ namespace NetCoreDbg
         /// <param name="Count">entry's count in data</param>
         /// <param name="data">pointer to memory with result</param>
         /// <returns>"Ok" if information is available</returns>
-        internal static RetCode ResolveBreakPoints(IntPtr symbolReaderHandles, int tokenNum, IntPtr Tokens, int sourceLine, int nestedToken,
-                                                   out int Count, [MarshalAs(UnmanagedType.LPWStr)] string sourcePath, out IntPtr data)
+        [UnmanagedCallersOnly]
+        internal unsafe static RetCode ResolveBreakPoints(IntPtr symbolReaderHandles, int tokenNum, IntPtr Tokens, int sourceLine, int nestedToken,
+                                                   int *pCount, IntPtr _sourcePath, IntPtr *pdata)
         {
+	    ref int Count = ref *pCount;
+	    string sourcePath = Marshal.PtrToStringUni(_sourcePath);
+	    ref IntPtr data = ref *pdata;
             Debug.Assert(symbolReaderHandles != IntPtr.Zero);
             Count = 0;
             data = IntPtr.Zero;
@@ -859,8 +884,11 @@ namespace NetCoreDbg
             return RetCode.OK;
         }
 
-        internal static RetCode GetStepRangesFromIP(IntPtr symbolReaderHandle, int ip, int methodToken, out uint ilStartOffset, out uint ilEndOffset)
+        [UnmanagedCallersOnly]
+        internal unsafe static RetCode GetStepRangesFromIP(IntPtr symbolReaderHandle, int ip, int methodToken, uint *pilStartOffset, uint *pilEndOffset)
         {
+	    ref uint ilStartOffset = ref *pilStartOffset;
+	    ref uint ilEndOffset = ref *pilEndOffset;
             Debug.Assert(symbolReaderHandle != IntPtr.Zero);
             ilStartOffset = 0;
             ilEndOffset = 0;
@@ -921,8 +949,12 @@ namespace NetCoreDbg
             return RetCode.Fail;
         }
 
-        internal static RetCode GetLocalVariableNameAndScope(IntPtr symbolReaderHandle, int methodToken, int localIndex, out IntPtr localVarName, out int ilStartOffset, out int ilEndOffset)
+        [UnmanagedCallersOnly]
+        internal unsafe static RetCode GetLocalVariableNameAndScope(IntPtr symbolReaderHandle, int methodToken, int localIndex, IntPtr *plocalVarName, int *pilStartOffset, int *pilEndOffset)
         {
+	    ref IntPtr localVarName = ref *plocalVarName;
+	    ref int ilStartOffset = ref *pilStartOffset;
+	    ref int ilEndOffset = ref *pilEndOffset;
             localVarName = IntPtr.Zero;
             ilStartOffset = 0;
             ilEndOffset = 0;
@@ -993,8 +1025,11 @@ namespace NetCoreDbg
         /// <param name="data">pointer to memory with histed local scopes</param>
         /// <param name="hoistedLocalScopesCount">histed local scopes count</param>
         /// <returns>"Ok" if information is available</returns>
-        internal static RetCode GetHoistedLocalScopes(IntPtr symbolReaderHandle, int methodToken, out IntPtr data, out int hoistedLocalScopesCount)
+        [UnmanagedCallersOnly]
+        internal unsafe static RetCode GetHoistedLocalScopes(IntPtr symbolReaderHandle, int methodToken, IntPtr *pdata, int *phoistedLocalScopesCount)
         {
+	    ref IntPtr data = ref *pdata;
+	    ref int hoistedLocalScopesCount = ref *phoistedLocalScopesCount;
             data = IntPtr.Zero;
             hoistedLocalScopesCount = 0;
 
@@ -1393,8 +1428,12 @@ namespace NetCoreDbg
         /// <param name="asyncInfoCount">entry's count in asyncInfo</param>
         /// <param name="LastIlOffset">return last found IL offset in user code</param>
         /// <returns>"Ok" if method have at least one await block and last IL offset was found</returns>
-        internal static RetCode GetAsyncMethodSteppingInfo(IntPtr symbolReaderHandle, int methodToken, out IntPtr asyncInfo, out int asyncInfoCount, out uint LastIlOffset)
+        [UnmanagedCallersOnly]
+        internal unsafe static RetCode GetAsyncMethodSteppingInfo(IntPtr symbolReaderHandle, int methodToken, IntPtr *pasyncInfo, int *pasyncInfoCount, uint *pLastIlOffset)
         {
+	    ref IntPtr asyncInfo = ref *pasyncInfo;
+	    ref int asyncInfoCount = ref *pasyncInfoCount;
+	    ref uint LastIlOffset = ref *pLastIlOffset;
             Debug.Assert(symbolReaderHandle != IntPtr.Zero);
 
             asyncInfo = IntPtr.Zero;
@@ -1500,8 +1539,12 @@ namespace NetCoreDbg
         /// <param name="length">length of data</param>
         /// <param name="data">pointer to memory with source code</param>
         /// <returns>"Ok" if information is available</returns>
-        internal static RetCode GetSource(IntPtr symbolReaderHandle, [MarshalAs(UnmanagedType.LPWStr)] string fileName, out int length, out IntPtr data)
+        [UnmanagedCallersOnly]
+        internal unsafe static RetCode GetSource(IntPtr symbolReaderHandle, IntPtr _fileName, int *plength, IntPtr *pdata)
         {
+	    string fileName = Marshal.PtrToStringUni(_fileName);
+	    ref int length = ref *plength;
+	    ref IntPtr data = ref *pdata;
             Debug.Assert(symbolReaderHandle != IntPtr.Zero);
             length = 0;
             data = IntPtr.Zero;

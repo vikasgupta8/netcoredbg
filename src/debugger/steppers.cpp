@@ -105,12 +105,12 @@ HRESULT Steppers::ManagedCallbackStepComplete(ICorDebugThread *pThread, CorDebug
     IfFailRet(iCorFrame->GetFunction(&iCorFunction));
     mdMethodDef methodDef;
     IfFailRet(iCorFunction->GetToken(&methodDef));
+    ToRelease<ICorDebugModule> iCorModule;
+    IfFailRet(iCorFunction->GetModule(&iCorModule));
     ToRelease<ICorDebugClass> iCorClass;
     IfFailRet(iCorFunction->GetClass(&iCorClass));
     mdTypeDef typeDef;
     IfFailRet(iCorClass->GetToken(&typeDef));
-    ToRelease<ICorDebugModule> iCorModule;
-    IfFailRet(iCorFunction->GetModule(&iCorModule));
     ToRelease<IUnknown> iUnknown;
     IfFailRet(iCorModule->GetMetaDataInterface(IID_IMetaDataImport, &iUnknown));
     ToRelease<IMetaDataImport> iMD;
