@@ -438,10 +438,6 @@ HRESULT GetTypeOfValue(ICorDebugType *pType, std::string &elementType, std::stri
                 ToRelease<ICorDebugModule> pModule;
                 IfFailRet(pClass->GetModule(&pModule));
 
-		WCHAR mname[mdNameLen];
-                ULONG32 name_len = 0;
-                pModule->GetName(_countof(mname), &name_len, mname);
-
                 ToRelease<IUnknown> pMDUnknown;
                 ToRelease<IMetaDataImport> pMD;
                 IfFailRet(pModule->GetMetaDataInterface(IID_IMetaDataImport, &pMDUnknown));
